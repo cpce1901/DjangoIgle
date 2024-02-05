@@ -1,13 +1,17 @@
 <script setup>
 import axios from "axios"
 import { inject } from "vue";
+import { useRouter } from "vue-router";
 
 const toast = inject('toast')
+const router = useRouter()
 
 const handlerSubmit = async (formData) => {
     try {
         const url = "http://localhost:8000/login/"
         const {data} = await axios.post(url, formData)
+        localStorage.setItem('Token', data.token)
+        router.push('dashboard')
             
     } catch (error) {
         toast.open({
