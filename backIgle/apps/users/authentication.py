@@ -1,9 +1,8 @@
 from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
-from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.exceptions import AuthenticationFailed
+
 
 class ExpiringTokenAuthentication(TokenAuthentication):
     
@@ -28,6 +27,7 @@ class ExpiringTokenAuthentication(TokenAuthentication):
         user = None
         try:
             token = self.get_model().objects.select_related('user').get(key=key)
+            print(token.user)
             token = self.token_expire_handler(token)
             user = token.user
         except self.get_model().DoesNotExist:

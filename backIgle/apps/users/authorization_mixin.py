@@ -8,7 +8,7 @@ from .authentication import ExpiringTokenAuthentication
 class Authentication(object):
     user = None
 
-    def get_user(self,request):
+    def get_token(self,request):
         token = get_authorization_header(request).split()
         if token:
             try:
@@ -26,7 +26,7 @@ class Authentication(object):
         return None
     
     def dispatch(self, request, *args, **kargs):
-        user = self.get_user(request)
+        user = self.get_token(request)
         if user is not None:
             return super().dispatch(request, *args, **kargs)
         response = Response({'error': 'No se han enviado las credenciales'}, status=status.HTTP_400_BAD_REQUEST)

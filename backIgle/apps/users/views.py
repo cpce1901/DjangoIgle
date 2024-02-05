@@ -1,22 +1,31 @@
-import datetime
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 from django.contrib.sessions.models import Session
+from django.utils import timezone
 from .serializer import UserTokenSerializer
 from .authorization_mixin import Authentication
 
 class UserTokenRefresh(Authentication, APIView):
     def get(self, request, *args, **kargs):
         try:
-            user_token, _ = Token.objects.get_or_create(user=self.user)
+            user_token, created = Token.objects.get_or_create(user=self.user)
             user = UserTokenSerializer(self.user)
-            return Response({
-                'token': user_token.key,
-                'user': user.data
-            }, status=status.HTTP_200_OK)
+            
+            if created:
+                return Response({
+                    'token': user_token.key,
+                    'user': user.data
+                    }, status=status.HTTP_200_OK)
+            else:
+                user_token.delete()
+                user_token = Token.objects.create(user=self.user)
+                return Response({
+                    'token': user_token.key,
+                    'user': user.data
+                    }, status=status.HTTP_200_OK)
         except:
             return Response({
                 'error', 'Credenciales enviadas incorrectas'
@@ -40,6 +49,13 @@ class Login(ObtainAuthToken):
                         'message': 'Inicio de secion existoso'
                         }, status=status.HTTP_201_CREATED)
                 else:
+                    all_sessions = Session.objects.filter(expire_date__gte = timezone.now())
+                    if all_sessions.exists():
+                        for session in all_sessions:
+                            session_data = session.get_decoded()
+                            if user.id == int(session_data.get('_auth_user_id')):
+                                session.delete()
+                                
                     token.delete()
                     token = Token.objects.create(user=user)
                     return Response({
@@ -64,7 +80,7 @@ class Logout(APIView):
 
             if token:
                 user = token.user
-                all_sessions = Session.objects.filter(expire_date__gte=datetime.datetime.now())
+                all_sessions = Session.objects.filter(expire_date__gte=timezone.now())
                 
                 for session in all_sessions:
                     session_data = session.get_decoded()
